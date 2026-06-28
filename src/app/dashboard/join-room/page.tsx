@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import CryptoJS from 'crypto-js'
 import { containsSQLInjection } from '@/lib/security'
+import { getErrorMessage } from '@/lib/errors'
 import FullScreenLoader from '@/components/ui/FullScreenLoader'
 import { LogIn } from 'lucide-react'
 
@@ -97,8 +98,8 @@ export default function JoinRoomPage() {
 
       router.push(`/dashboard/room/${room.id}`)
       router.refresh()
-    } catch (err: any) {
-      setError(err.message || 'Failed to join room')
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, 'Failed to join room'))
       setLoading(false)
     }
   }

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { loginUser } from '@/lib/services/auth.service'
 import { containsSQLInjection } from '@/lib/security'
+import { getErrorMessage } from '@/lib/errors'
 import FullScreenLoader from '@/components/ui/FullScreenLoader'
 import ScrollReveal from '@/components/ui/ScrollReveal'
 
@@ -57,7 +58,7 @@ export default function LoginPage() {
       localStorage.removeItem('lockoutUntil')
       router.push('/dashboard')
       router.refresh()
-    } catch (err: any) {
+    } catch (error: unknown) {
       const attempts = parseInt(localStorage.getItem('loginAttempts') || '0', 10) + 1
       localStorage.setItem('loginAttempts', attempts.toString())
 
@@ -66,7 +67,7 @@ export default function LoginPage() {
         localStorage.setItem('lockoutUntil', lockoutTime.toString())
         setLockoutRemaining(15 * 60)
       } else {
-        setError('Incorrect email or password')
+        setError(getErrorMessage(error, 'Incorrect email or password'))
       }
     } finally {
       setLoading(false)

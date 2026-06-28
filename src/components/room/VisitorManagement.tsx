@@ -4,7 +4,15 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
-export default function VisitorManagement({ memberships, roomId }: { memberships: any[], roomId: string }) {
+type VisitorMembership = {
+  id: string
+  upload_permission: boolean
+  profile_name: string
+  alias_number: number
+  first_entry_at: string
+}
+
+export default function VisitorManagement({ memberships }: { memberships: VisitorMembership[], roomId: string }) {
   const [updating, setUpdating] = useState<string | null>(null)
   const router = useRouter()
   const supabase = createClient()

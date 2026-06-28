@@ -1,16 +1,15 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import CryptoJS from 'crypto-js'
 import { containsSQLInjection } from '@/lib/security'
+import { getErrorMessage } from '@/lib/errors'
 import FullScreenLoader from '@/components/ui/FullScreenLoader'
 import { PlusCircle } from 'lucide-react'
 
 export default function CreateRoomPage() {
-  const router = useRouter()
   const [roomName, setRoomName] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -39,7 +38,7 @@ export default function CreateRoomPage() {
 
       const passwordHash = CryptoJS.SHA256(password).toString()
 
-      const { data, error: insertError } = await supabase
+      const { error: insertError } = await supabase
         .from('rooms')
         .insert({
           name: roomName,
@@ -55,8 +54,8 @@ export default function CreateRoomPage() {
       if (insertError) throw insertError
 
       window.location.href = '/dashboard/my-rooms'
-    } catch (err: any) {
-      setError(err.message || 'Failed to create room')
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, 'Failed to create room'))
       setLoading(false)
     }
   }

@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useRef, DragEvent } from 'react'
+import { useState, useRef } from 'react'
 import { UploadCloud, Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { getErrorMessage } from '@/lib/errors'
 
 interface FileUploadProps {
   roomId: string
@@ -28,7 +29,7 @@ export default function FileUpload({ roomId, uploadEnabled }: FileUploadProps) {
     try {
       const supabase = createClient()
       const { data: { session } } = await supabase.auth.getSession()
-    const user = session?.user
+      const user = session?.user
 
       if (!user) {
         setError('You must be logged in')
@@ -71,8 +72,8 @@ export default function FileUpload({ roomId, uploadEnabled }: FileUploadProps) {
 
       setProgress('')
       router.refresh()
-    } catch (err: any) {
-      setError(err.message || 'Upload failed')
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, 'Upload failed'))
     } finally {
       setUploading(false)
     }

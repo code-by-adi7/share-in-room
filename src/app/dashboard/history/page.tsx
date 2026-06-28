@@ -4,6 +4,24 @@ import Link from 'next/link'
 import TransitionLink from '@/components/ui/TransitionLink'
 import { Clock, Search } from 'lucide-react'
 
+type HistoryEntry = {
+  id: string
+  last_entry_at: string
+  rooms: {
+    id: string
+    name: string
+    is_deleted: boolean
+  } | null
+}
+
+type VisibleHistoryEntry = HistoryEntry & {
+  rooms: NonNullable<HistoryEntry['rooms']>
+}
+
+function hasVisibleRoom(entry: HistoryEntry): entry is VisibleHistoryEntry {
+  return entry.rooms !== null && !entry.rooms.is_deleted
+}
+
 export default async function HistoryPage() {
   const supabase = await createClient()
   const { data: { session } } = await supabase.auth.getSession()
@@ -11,7 +29,7 @@ export default async function HistoryPage() {
 
   if (!user) redirect('/auth/login')
 
-  const { data: historyEntries } = await supabase
+  const { data } = await supabase
     .from('history')
     .select(`
       *,
@@ -23,6 +41,8 @@ export default async function HistoryPage() {
     `)
     .eq('account_id', user.id)
     .order('last_entry_at', { ascending: false })
+  const historyEntries = (data || []) as HistoryEntry[]
+  const visibleHistoryEntries = historyEntries.filter(hasVisibleRoom)
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
@@ -52,7 +72,7 @@ export default async function HistoryPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {historyEntries.filter((entry: any) => entry.rooms && !entry.rooms.is_deleted).length === 0 ? (
+              {visibleHistoryEntries.length === 0 ? (
                 <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-12 text-center">
                   <div className="flex justify-center mb-4"><Search className="w-12 h-12 text-gray-300" /></div>
                   <h2 className="font-semibold text-gray-800 dark:text-gray-100 mb-1">No history yet</h2>
@@ -65,9 +85,8 @@ export default async function HistoryPage() {
                   </Link>
                 </div>
               ) : (
-                historyEntries
-                  .filter((entry: any) => entry.rooms && !entry.rooms.is_deleted)
-                  .map((entry: any) => {
+                visibleHistoryEntries
+                  .map((entry) => {
                     const room = entry.rooms
 
                     return (
