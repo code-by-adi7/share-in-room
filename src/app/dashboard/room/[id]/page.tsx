@@ -1,7 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { Users, File, FileText } from 'lucide-react'
 import { redirect, notFound } from 'next/navigation'
-import Link from 'next/link'
 import TransitionLink from '@/components/ui/TransitionLink'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import FileUpload from '@/components/room/FileUpload'
@@ -12,6 +11,21 @@ import VisitorManagement from '@/components/room/VisitorManagement'
 
 import FileDelete from '@/components/room/FileDelete'
 
+type Membership = {
+  id: string
+  account_id: string
+  room_id: string
+  upload_permission: boolean
+  individually_restricted: boolean
+  alias_number: number
+  first_entry_at: string
+}
+
+type Profile = {
+  id: string
+  name: string
+}
+
 export default async function RoomPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const supabase = await createClient()
@@ -20,6 +34,8 @@ export default async function RoomPage({ params }: { params: Promise<{ id: strin
 
   if (!user) redirect('/auth/login')
 
+  // Server-rendered freshness cutoff for presence queries.
+  // eslint-disable-next-line react-hooks/purity
   const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString()
 
   const [
@@ -49,7 +65,7 @@ export default async function RoomPage({ params }: { params: Promise<{ id: strin
   )
 
   // Fetch all memberships if owner
-  let allMemberships: any[] = []
+  let allMemberships: (Membership & { profile_name: string })[] = []
   if (isAuthor) {
     const { data: mems } = await supabase
       .from('memberships')
@@ -58,25 +74,26 @@ export default async function RoomPage({ params }: { params: Promise<{ id: strin
       .order('first_entry_at', { ascending: true })
     
     if (mems && mems.length > 0) {
-      const accountIds = mems.map((m: any) => m.account_id)
-      let profs: any[] = []
+      const typedMemberships = mems as Membership[]
+      const accountIds = typedMemberships.map((m) => m.account_id)
+      let profs: Profile[] = []
       
       if (accountIds.length > 0) {
         const { data } = await supabase
           .from('profiles')
           .select('id, name')
           .in('id', accountIds)
-        profs = data || []
+        profs = (data || []) as Profile[]
       }
       
-      const profMap = (profs || []).reduce((acc: any, p: any) => {
+      const profMap = profs.reduce<Record<string, string>>((acc, p) => {
         acc[p.id] = p.name
         return acc
       }, {})
 
-      allMemberships = mems
-        .filter((m: any) => m.account_id !== user.id) // Filter out the owner
-        .map((m: any) => ({
+      allMemberships = typedMemberships
+        .filter((m) => m.account_id !== user.id)
+        .map((m) => ({
           ...m,
           profile_name: profMap[m.account_id] || 'Unknown User'
         }))
@@ -85,16 +102,16 @@ export default async function RoomPage({ params }: { params: Promise<{ id: strin
 
   // Fetch uploader profiles
   const uploaderIds = Array.from(new Set(files?.map(f => f.uploader_id).filter(Boolean) || []))
-  let uploaderProfs: any[] = []
+  let uploaderProfs: Profile[] = []
   if (uploaderIds.length > 0) {
     const { data } = await supabase
       .from('profiles')
       .select('id, name')
       .in('id', uploaderIds)
-    uploaderProfs = data || []
+    uploaderProfs = (data || []) as Profile[]
   }
   
-  const uploaderMap = (uploaderProfs || []).reduce((acc: any, p: any) => {
+  const uploaderMap = uploaderProfs.reduce<Record<string, string>>((acc, p) => {
     acc[p.id] = p.name
     return acc
   }, {})

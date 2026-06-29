@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { registerUser } from '@/lib/services/auth.service'
 import { containsSQLInjection } from '@/lib/security'
+import { getErrorMessage } from '@/lib/errors'
 import FullScreenLoader from '@/components/ui/FullScreenLoader'
 import ScrollReveal from '@/components/ui/ScrollReveal'
 
@@ -31,8 +32,8 @@ export default function RegisterPage() {
       await registerUser(name, email, password)
       router.push('/dashboard')
       router.refresh()
-    } catch (err: any) {
-      setError(err.message || 'Something went wrong. Please try again.')
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, 'Something went wrong. Please try again.'))
     } finally {
       setLoading(false)
     }
